@@ -98,13 +98,34 @@ class Pebble(object):
         attack = self.min_attack + (scale_pct * attack_range)
         return attack
 
+    def data_to_pitch_tuned(self, datapoint):
+        # Where does this data point sit in the domain of your data? (I.E. the min magnitude is 3, the max in 5.6). In this case the optional 'True' means the scale is reversed, so the highest value will return the lowest percentage.
+        #scale_pct = self.mymidi.linear_scale_pct(0, self.maximum, datapoint)
+
+        # Another option: Linear scale, reverse order
+        scale_pct = self.mymidi.linear_scale_pct(0, self.maximum_energy, datapoint, True)
+        # print 10**self.maximum
+        # Another option: Logarithmic scale, reverse order
+        # scale_pct = self.mymidi.log_scale_pct(0, self.maximum, datapoint, True, 'log')
+
+        # Pick a range of notes. This allows you to play in a key.
+        mode = self.current_key
+
+        #Find the note that matches your data point
+        note = self.mymidi.scale_to_note(scale_pct, mode)
+
+        #Translate that note to a MIDI pitch
+        midi_pitch = self.mymidi.note_to_midi_pitch(note)
+        print scale_pct, note
+
+        return midi_pitch
+
     def energy_to_duration(self, datapoint):  # For impact duration, not fall
         scale_pct = self.mymidi.linear_scale_pct(self.minimum_energy, self.maximum_energy, datapoint)
 
         duration_range = self.max_impact_duration - self.min_impact_duration
         duration = self.min_impact_duration + (scale_pct * duration_range)
         return duration
-
 
     def make_falling_notes(self, data_timed, data_key, channel):
         note_list = []
@@ -134,7 +155,8 @@ class Pebble(object):
             note_list.append([
                 [
                     d['beat'] - start_time + self.seconds_to_beats(d[data_key]),  # falling start plus duration of fall
-                    self.mymidi.note_to_midi_pitch("C4"),  # pitch
+                    # self.mymidi.note_to_midi_pitch("C4"),  # pitch
+                    self.data_to_pitch_tuned(energy),  # pitch
                     self.energy_to_attack(energy),  # attack
                     self.energy_to_duration(energy)  # duration, in beats
                 ],
