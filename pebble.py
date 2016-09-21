@@ -71,7 +71,7 @@ class Pebble(object):
     def read_csv(self, filepath):
         csv_file = open(filepath, 'rU')
         return csv.DictReader(csv_file, delimiter=',', quotechar='"')
-    # 
+    #
     # def round_to_quarter_beat(self, input):
     #     return round(input * 4) / 4
 
@@ -140,7 +140,7 @@ class Pebble(object):
         raw_data = list(self.read_csv('data/groundwater_test.csv'))
         # filtered_data = self.remove_weeks(raw_data)
         #
-        self.mymidi = MIDITime(self.tempo, 'pebble_test.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
+        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_test.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
 
         self.minimum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[0])
         self.maximum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[1])
