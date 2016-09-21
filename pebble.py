@@ -40,6 +40,9 @@ class Pebble(object):
     min_attack = 30
     max_attack = 255
 
+    min_impact_duration = 1
+    max_impact_duration = 4
+
     # min_duration = 1
     # max_duration = 5
 
@@ -54,7 +57,7 @@ class Pebble(object):
 
     current_key = c_major
     base_octave = 2
-    octave_range = 5
+    octave_range = 2
 
     def __init__(self):
         self.csv_to_miditime()
@@ -87,18 +90,23 @@ class Pebble(object):
 
         # Another option: Linear scale, reverse order
         scale_pct = self.mymidi.linear_scale_pct(0, self.maximum_energy, datapoint)
-        print datapoint, self.maximum_energy, scale_pct
         # print 10**self.maximum
         # Another option: Logarithmic scale, reverse order
         # scale_pct = self.mymidi.log_scale_pct(0, self.maximum, datapoint, True, 'log')
 
         attack_range = self.max_attack - self.min_attack
-        print attack_range
         attack = self.min_attack + (scale_pct * attack_range)
-        print attack
         return attack
 
-    def make_falling_notes(self, data_timed, data_key, channel=0):
+    def energy_to_duration(self, datapoint):  # For impact duration, not fall
+        scale_pct = self.mymidi.linear_scale_pct(self.minimum_energy, self.maximum_energy, datapoint)
+
+        duration_range = self.max_impact_duration - self.min_impact_duration
+        duration = self.min_impact_duration + (scale_pct * duration_range)
+        return duration
+
+
+    def make_falling_notes(self, data_timed, data_key, channel):
         note_list = []
 
         start_time = data_timed[0]['beat']
@@ -115,7 +123,7 @@ class Pebble(object):
             ])
         return note_list
 
-    def make_splashing_notes(self, data_timed, data_key, channel=0):
+    def make_splashing_notes(self, data_timed, data_key, channel):
         note_list = []
 
         start_time = data_timed[0]['beat']
@@ -128,8 +136,7 @@ class Pebble(object):
                     d['beat'] - start_time + self.seconds_to_beats(d[data_key]),  # falling start plus duration of fall
                     self.mymidi.note_to_midi_pitch("C4"),  # pitch
                     self.energy_to_attack(energy),  # attack
-                    3
-                    # self.energy_to_duration(energy)  # duration, in beats
+                    self.energy_to_duration(energy)  # duration, in beats
                 ],
                 channel
             ])
@@ -162,10 +169,9 @@ class Pebble(object):
                 'duration_secs': self.time_to_impact(distance_meters)
             })
 
-        falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 0)
-        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 1)
+        falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 1)
+        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 2)
         note_list = falling_note_list + splashing_note_list
-        print splashing_note_list
         # Add a track with those notes
         self.mymidi.add_track(note_list)
 
