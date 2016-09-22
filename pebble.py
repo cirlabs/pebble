@@ -191,11 +191,12 @@ class Pebble(object):
                 'duration_secs': self.time_to_impact(distance_meters)
             })
 
-        falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 1)
-        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 2)
-        note_list = falling_note_list + splashing_note_list
+        falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 0)
+        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 0)
+        # note_list = falling_note_list + splashing_note_list
         # Add a track with those notes
-        self.mymidi.add_track(note_list)
+        self.mymidi.add_track(falling_note_list)
+        self.mymidi.add_track(splashing_note_list)
 
         # Output the .mid file
         self.mymidi.save_midi()
