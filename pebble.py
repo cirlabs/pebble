@@ -169,7 +169,7 @@ class Pebble(object):
         raw_data = list(self.read_csv('data/groundwater_test.csv'))
         # filtered_data = self.remove_weeks(raw_data)
         #
-        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_test.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
+        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_test_multitrack.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
 
         self.minimum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[0])
         self.maximum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[1])
@@ -192,7 +192,7 @@ class Pebble(object):
             })
 
         falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 0)
-        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 0)
+        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 1)
         # note_list = falling_note_list + splashing_note_list
         # Add a track with those notes
         self.mymidi.add_track(falling_note_list)
