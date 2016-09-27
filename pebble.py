@@ -216,7 +216,7 @@ class Pebble(object):
             })
 
         falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 0)
-        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 0)
+        splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 1)
         # note_list = falling_note_list + splashing_note_list
         # Add a track with those notes
         self.mymidi.add_track(falling_note_list)
