@@ -14,6 +14,7 @@
 import os
 import csv
 import math
+from numpy import median
 from datetime import datetime, timedelta
 
 from miditime.miditime import MIDITime
@@ -46,7 +47,7 @@ class Pebble(object):
     # min_duration = 1
     # max_duration = 5
 
-    seconds_per_year = 10
+    seconds_per_year = 6
 
     c_major = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
     c_minor = ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb']
@@ -61,6 +62,26 @@ class Pebble(object):
 
     def __init__(self):
         self.csv_to_miditime()
+
+    def get_yearly_averages(self, rows, distance_var):
+        years = {}
+        for r in rows:
+            # extract year
+            year = datetime.strptime(r["Date"], "%m/%d/%Y").year
+            if year not in years:
+                years[year] = [float(r[distance_var])]
+            else:
+                years[year].append(float(r[distance_var]))
+
+        # now get averages
+        output = []
+        for year, values in years.iteritems():
+            yearly_avg = {'year': year, 'median_distance_meters': median(values)}
+            output.append(yearly_avg)
+            print yearly_avg
+
+        # sort them
+        return sorted(output, key=lambda k: k['year'])
 
     def feet_to_meters(self, feet):
         return float(feet) * 0.3048
@@ -79,7 +100,7 @@ class Pebble(object):
     #     return round(input * 4) / 4
 
     def velocity_on_impact(self, height_meters):  # sqrt( 2 * g * height )
-        return math.sqrt(2 * self.g * height_meters)
+        return math.sqrt(2 * self.g * float(height_meters))
 
     def energy_on_impact(self, mass, velocity):  # Energy at splat time: 1/2 * mass * velocity2 = mass * g * height
         return (mass * velocity) / 2
@@ -166,22 +187,25 @@ class Pebble(object):
         return note_list
 
     def csv_to_miditime(self):
-        raw_data = list(self.read_csv('data/groundwater_test.csv'))
-        # filtered_data = self.remove_weeks(raw_data)
-        #
-        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_test.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
+        # raw_data = list(self.read_csv('data/groundwater_test.csv'))
+        raw_data = list(self.read_csv('data/p304water.csv'))
 
-        self.minimum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[0])
-        self.maximum_depth = self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[1])
+        yearly_data = self.get_yearly_averages(raw_data, 'wl(m)')
 
-        self.minimum_energy = self.energy_on_impact(self.mass_grams, self.velocity_on_impact(self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[0])))
-        self.maximum_energy = self.energy_on_impact(self.mass_grams, self.velocity_on_impact(self.feet_to_meters(self.mymidi.get_data_range(raw_data, 'depth_to_water_feet')[1])))
+        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_p304.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
+
+        self.minimum_depth = self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[0]
+        self.maximum_depth = self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[1]
+
+        self.minimum_energy = self.energy_on_impact(self.mass_grams, self.velocity_on_impact(self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[0]))
+        self.maximum_energy = self.energy_on_impact(self.mass_grams, self.velocity_on_impact(self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[1]))
 
         timed_data = []
 
-        for r in raw_data:
-            python_date = datetime.strptime(r["date"], "%Y-%m-%d")
-            distance_meters = self.feet_to_meters(r['depth_to_water_feet'])
+        for r in yearly_data:
+            # python_date = datetime.strptime(r["Date"], "%Y-%m-%d")
+            python_date = datetime.strptime('1/1/%s' % r["year"], "%m/%d/%Y")
+            distance_meters = r['median_distance_meters']
             days_since_epoch = self.mymidi.days_since_epoch(python_date)
             beat = self.mymidi.beat(days_since_epoch)
             timed_data.append({
