@@ -63,15 +63,18 @@ class Pebble(object):
     def __init__(self):
         self.csv_to_miditime()
 
-    def get_yearly_averages(self, rows, distance_var):
+    def get_yearly_averages(self, rows, date_var, distance_var):
         years = {}
         for r in rows:
-            # extract year
-            year = datetime.strptime(r["Date"], "%m/%d/%Y").year
-            if year not in years:
-                years[year] = [float(r[distance_var])]
-            else:
-                years[year].append(float(r[distance_var]))
+            # filter out nulls
+            if r[distance_var]:
+                if r[distance_var] != '':
+                    # extract year
+                    year = datetime.strptime(r[date_var], "%m/%d/%Y").year
+                    if year not in years:
+                        years[year] = [float(r[distance_var])]
+                    else:
+                        years[year].append(float(r[distance_var]))
 
         # now get averages
         output = []
@@ -190,7 +193,7 @@ class Pebble(object):
         # raw_data = list(self.read_csv('data/groundwater_test.csv'))
         raw_data = list(self.read_csv('data/p304water.csv'))
 
-        yearly_data = self.get_yearly_averages(raw_data, 'wl(m)')
+        yearly_data = self.get_yearly_averages(raw_data, 'Date', 'wl(m)')
 
         self.mymidi = MIDITime(self.tempo, 'media_out/pebble_p304.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
 
