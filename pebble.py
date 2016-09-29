@@ -24,7 +24,6 @@ class Pebble(object):
     '''
     Lots of stuff cribbed from here: https://www.angio.net/personal/climb/speed
 
-    TODO: Terminal velocity
     '''
 
     g = 9.8
@@ -32,9 +31,6 @@ class Pebble(object):
 
     epoch = datetime(2004, 1, 1)  # Not actually necessary, but optional to specify your own
     mymidi = None
-
-    # min_value = 0
-    # max_value = 5.7
 
     tempo = 120
 
@@ -44,10 +40,7 @@ class Pebble(object):
     min_impact_duration = 1
     max_impact_duration = 4
 
-    # min_duration = 1
-    # max_duration = 5
-
-    seconds_per_year = 6
+    seconds_per_year = 1
 
     c_major = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
     c_minor = ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb']
@@ -58,23 +51,32 @@ class Pebble(object):
 
     current_key = c_major
     base_octave = 2
-    octave_range = 2
+    octave_range = 4
 
     def __init__(self):
         self.csv_to_miditime()
 
-    def get_yearly_averages(self, rows, date_var, distance_var):
+    def get_yearly_averages(self, rows, date_var, date_format, distance_var, unit):
         years = {}
         for r in rows:
             # filter out nulls
             if r[distance_var]:
                 if r[distance_var] != '':
                     # extract year
-                    year = datetime.strptime(r[date_var], "%m/%d/%Y").year
-                    if year not in years:
-                        years[year] = [float(r[distance_var])]
+                    year = datetime.strptime(r[date_var], date_format).year
+                    # make a decade
+                    decade = int('%s0' % (str(year)[:-1],))
+
+                    # convert to meters (if feet):
+                    if unit == 'feet':
+                        distance_meters = self.feet_to_meters(float(r[distance_var]))
                     else:
-                        years[year].append(float(r[distance_var]))
+                        distance_meters = float(r[distance_var])
+
+                    if decade not in years:
+                        years[decade] = [distance_meters]
+                    else:
+                        years[decade].append(distance_meters)
 
         # now get averages
         output = []
@@ -140,7 +142,6 @@ class Pebble(object):
 
         #Translate that note to a MIDI pitch
         midi_pitch = self.mymidi.note_to_midi_pitch(note)
-        print scale_pct, note
 
         return midi_pitch
 
@@ -160,7 +161,7 @@ class Pebble(object):
             note_list.append([
                 [
                     d['beat'] - start_time,
-                    self.mymidi.note_to_midi_pitch("C4"),  # pitch
+                    self.mymidi.note_to_midi_pitch("C4"),  # pitch (set manually for drop)
                     100,  # attack
                     self.seconds_to_beats(d['duration_secs'])  # duration, in beats
                 ],
@@ -179,23 +180,22 @@ class Pebble(object):
             note_list.append([
                 [
                     d['beat'] - start_time + self.seconds_to_beats(d[data_key]),  # falling start plus duration of fall
-                    # self.mymidi.note_to_midi_pitch("C4"),  # pitch
                     self.data_to_pitch_tuned(energy),  # pitch
                     self.energy_to_attack(energy),  # attack
                     self.energy_to_duration(energy)  # duration, in beats
                 ],
                 channel
             ])
-            # print note_list
         return note_list
 
     def csv_to_miditime(self):
         # raw_data = list(self.read_csv('data/groundwater_test.csv'))
-        raw_data = list(self.read_csv('data/p304water.csv'))
+        raw_data = list(self.read_csv('data/15S18E30L001M_clean.csv'))
 
-        yearly_data = self.get_yearly_averages(raw_data, 'Date', 'wl(m)')
+        # yearly_data = self.get_yearly_averages(raw_data, 'Date', "%m/%d/%Y", 'wl(m)', 'meters')
+        yearly_data = self.get_yearly_averages(raw_data, 'Measurement_Date', "%m-%d-%Y", 'GSWS', 'feet')
 
-        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_p304.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
+        self.mymidi = MIDITime(self.tempo, 'media_out/pebble_longterm.mid', self.seconds_per_year, self.base_octave, self.octave_range, self.epoch)
 
         self.minimum_depth = self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[0]
         self.maximum_depth = self.mymidi.get_data_range(yearly_data, 'median_distance_meters')[1]
@@ -220,7 +220,7 @@ class Pebble(object):
 
         falling_note_list = self.make_falling_notes(timed_data, 'duration_secs', 0)
         splashing_note_list = self.make_splashing_notes(timed_data, 'duration_secs', 1)
-        # note_list = falling_note_list + splashing_note_list
+
         # Add a track with those notes
         self.mymidi.add_track(falling_note_list)
         self.mymidi.add_track(splashing_note_list)
