@@ -34,8 +34,8 @@ class Pebble(object):
 
     tempo = 120
 
-    min_attack = 30
-    max_attack = 255
+    min_velocity = 30
+    max_velocity = 127
 
     min_impact_duration = 1
     max_impact_duration = 4
@@ -110,7 +110,7 @@ class Pebble(object):
     def energy_on_impact(self, mass, velocity):  # Energy at splat time: 1/2 * mass * velocity2 = mass * g * height
         return (mass * velocity) / 2
 
-    def energy_to_attack(self, datapoint):
+    def energy_to_velocity(self, datapoint):
         # Where does this data point sit in the domain of your data? (I.E. the min magnitude is 3, the max in 5.6). In this case the optional 'True' means the scale is reversed, so the highest value will return the lowest percentage.
         #scale_pct = self.mymidi.linear_scale_pct(0, self.maximum, datapoint)
 
@@ -120,9 +120,9 @@ class Pebble(object):
         # Another option: Logarithmic scale, reverse order
         # scale_pct = self.mymidi.log_scale_pct(0, self.maximum, datapoint, True, 'log')
 
-        attack_range = self.max_attack - self.min_attack
-        attack = self.min_attack + (scale_pct * attack_range)
-        return attack
+        velocity_range = self.max_velocity - self.min_velocity
+        velocity = self.min_velocity + (scale_pct * velocity_range)
+        return velocity
 
     def data_to_pitch_tuned(self, datapoint):
         # Where does this data point sit in the domain of your data? (I.E. the min magnitude is 3, the max in 5.6). In this case the optional 'True' means the scale is reversed, so the highest value will return the lowest percentage.
@@ -162,7 +162,7 @@ class Pebble(object):
                 [
                     d['beat'] - start_time,
                     self.mymidi.note_to_midi_pitch("C4"),  # pitch (set manually for drop)
-                    100,  # attack
+                    100,  # velocity
                     self.seconds_to_beats(d['duration_secs'])  # duration, in beats
                 ],
                 channel
@@ -181,7 +181,7 @@ class Pebble(object):
                 [
                     d['beat'] - start_time + self.seconds_to_beats(d[data_key]),  # falling start plus duration of fall
                     self.data_to_pitch_tuned(energy),  # pitch
-                    self.energy_to_attack(energy),  # attack
+                    self.energy_to_velocity(energy),  # velocity
                     self.energy_to_duration(energy)  # duration, in beats
                 ],
                 channel
